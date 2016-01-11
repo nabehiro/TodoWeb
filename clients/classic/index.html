@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <title>Todo App</title>
+  <style>
+    .completed {
+      text-decoration: line-through;
+      color: #808080;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>jQuery + classic implement</h1>
+  <div>
+    <h2>Add Todo</h2>
+    <form id="add-form">
+      <input type="text" name="title" id="title" />
+      <input type="submit" value="add" />
+    </form>
+  </div>
+  <div>
+    <h2>All Todos</h2>
+    <ul id="todos" />
+  </div>
+
+  <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-2.0.3.min.js"></script>
+  <script>
+    var apiUrl = 'api/todos';
+
+    function appendTodo(item) {
+      var $label = $('<label>')
+        .append($('<input>', {
+          type: 'checkbox',
+          checked: item.Completed
+        }))
+        .append($('<span>', {
+          text: item.Id + ': ' + item.Title,
+          class: item.Completed ? 'completed' : null
+        }));
+
+      var $li = $('<li>')
+        .data('id', item.Id)
+        .data('title', item.Title)
+        .append($label)
+        .append($('<button>', {
+          text: 'delete'
+        }));
+
+      $('#todos').append($li);
+    }
+
+    $(function() {
+      // init todo list.
+      $.ajax({
+        url: apiUrl
+      }).done(function(data) {
+        $.each(data, function() {
+          appendTodo(this);
+        });
+      });
+
+      // add todo.
+      $('#add-form').submit(function(e) {
+        e.preventDefault();
+
+        var $title = $('#title');
+        if (!$title.val()) {
+          return;
+        }
+
+        var item = {
+          Id: 0,
+          Title: $title.val(),
+          Completed: false
+        };
+
+        $.ajax({
+          url: apiUrl,
+          type: 'POST',
+          data: item
+        }).done(function(data) {
+          appendTodo(data);
+          $title.val('');
+          console.log('ADDED:', data);
+        });
+      });
+
+      // toggle completed.
+      $('#todos').on('change', 'input', function() {
+        var $check = $(this);
+        var $li = $check.closest('li');
+
+        var item = {
+          Id: $li.data('id'),
+          Title: $li.data('title'),
+          Completed: $check.is(':checked')
+        };
+
+        $.ajax({
+          url: apiUrl + '/' + item.Id,
+          type: 'PUT',
+          data: item
+        }).done(function() {
+          $check.siblings('span').toggleClass('completed');
+          console.log('UPDATE:', item);
+        });
+      });
+
+      // delete todo.
+      $('#todos').on('click', 'button', function() {
+        var $li = $(this).closest('li');
+        var id = $li.data('id');
+        $.ajax({
+          url: apiUrl + '/' + id,
+          type: 'DELETE'
+        }).done(function(data) {
+          $li.remove();
+          console.log('DELETED:', data);
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>
